@@ -172,8 +172,18 @@ export function generateContentSelectionPageHtml(env, dateStr, allData, dataCate
                     button.disabled = true;
 
                     try {
-                        localStorage.setItem('${env.FOLO_COOKIE_KV_KEY}', cookieValue); // 直接保存到 localStorage
-                        alert('Folo Cookie 已成功保存在本地存储！');
+                        localStorage.setItem('${env.FOLO_COOKIE_KV_KEY}', cookieValue); // 保存到 localStorage
+                        // 同步持久化到服务端的 KV 中，供每日 Cron 定时自动化管道使用
+                        const syncRes = await fetch('/saveFoloCookie', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cookie: cookieValue })
+                        });
+                        if (syncRes.ok) {
+                            alert('Folo Cookie 已成功保存在本地存储并同步至云端 KV！后台定时任务已就绪。');
+                        } else {
+                            alert('Folo Cookie 已保存在本地存储，但同步至云端 KV 遇到问题。');
+                        }
                     } catch (error) {
                         console.error('Error saving Folo Cookie to localStorage:', error);
                         alert(\`保存 Folo Cookie 到本地存储时发生错误: \${error.message}\`);

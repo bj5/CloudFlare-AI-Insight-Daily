@@ -4,6 +4,7 @@ import GithubTrendingDataSource from './dataSources/github-trending.js';
 import PapersDataSource from './dataSources/papers.js';
 import TwitterDataSource from './dataSources/twitter.js';
 import RedditDataSource from './dataSources/reddit.js';
+import { resolveFoloCookie } from './foloClient.js';
 
 
 // Register data sources as arrays to support multiple sources per type
@@ -24,17 +25,19 @@ export const dataSources = {
  * @returns {Promise<Array<object>>} A promise that resolves to an array of unified data objects from all sources of that type.
  */
 export async function fetchAndTransformDataForType(sourceType, env, foloCookie) {
-    const sources = dataSources[sourceType].sources;
+    const sources = dataSources[sourceType]?.sources;
     if (!sources || !Array.isArray(sources)) {
         console.error(`No data sources registered for type: ${sourceType}`);
         return [];
     }
 
+    const effectiveCookie = await resolveFoloCookie(env, foloCookie);
+
     let allUnifiedDataForType = [];
     for (const dataSource of sources) {
         try {
-            // Pass foloCookie to the fetch method of the data source
-            const rawData = await dataSource.fetch(env, foloCookie);
+            // Pass effectiveCookie to the fetch method of the data source
+            const rawData = await dataSource.fetch(env, effectiveCookie);
             const unifiedData = dataSource.transform(rawData, sourceType);
             allUnifiedDataForType = allUnifiedDataForType.concat(unifiedData);
         } catch (error) {

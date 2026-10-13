@@ -156,7 +156,7 @@ crons = ["0 2 * * *"]   # UTC 02:00 = 北京时间 10:00
 
 每日自动执行：
 
-1. 从 Follow.is / GitHub Trending 等数据源抓取最新内容
+1. 从 Folo (app.folo.is) / GitHub Trending 等数据源抓取最新内容
 2. 数据存入 KV（供 UI 选择和生成日报使用）
 
 **后续步骤仍需手动触发**（登录后台选择条目 → 生成日报 → 存入 R2）：

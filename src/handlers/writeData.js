@@ -18,6 +18,16 @@ export async function handleWriteData(request, env) {
             foloCookie = requestBody.foloCookie; // 获取 foloCookie
         }
 
+        if (foloCookie && env.DATA_KV) {
+            const kvKey = env.FOLO_COOKIE_KV_KEY || 'folo_auth_cookie';
+            try {
+                await storeInKV(env.DATA_KV, kvKey, foloCookie);
+                console.log(`[writeData] Folo Cookie 已自动同步存储至 KV: ${kvKey}`);
+            } catch (err) {
+                console.warn(`[writeData] 同步 Folo Cookie 至 KV 失败: ${err.message}`);
+            }
+        }
+
         console.log(`Starting /writeData process for category: ${category || 'all'} with foloCookie presence: ${!!foloCookie}`);
 
         let dataToStore = {};

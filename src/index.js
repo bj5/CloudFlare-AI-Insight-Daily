@@ -106,6 +106,21 @@ export default {
             } else if (path === '/commitToGitHub' && request.method === 'POST') {
                 // 实际存储到 R2，保留路由名称以兼容前端
                 response = await handleCommitToGitHub(request, env);
+            } else if (path === '/saveFoloCookie' && request.method === 'POST') {
+                const body = await request.json();
+                const cookie = body?.cookie;
+                if (!cookie || !cookie.trim()) {
+                    response = new Response(JSON.stringify({ success: false, message: 'Cookie 不能为空' }), {
+                        status: 400,
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+                    });
+                } else {
+                    const kvKey = env.FOLO_COOKIE_KV_KEY || 'folo_auth_cookie';
+                    await storeInKV(env.DATA_KV, kvKey, cookie.trim());
+                    response = new Response(JSON.stringify({ success: true, message: 'Folo Cookie 已同步保存至 KV' }), {
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+                    });
+                }
             } else {
                 return new Response(null, { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
             }

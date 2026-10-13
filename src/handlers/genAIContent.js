@@ -11,7 +11,7 @@ import { getSystemPromptPodcastFormatting, getSystemPromptShortPodcastFormatting
 import { getSystemPromptDailyAnalysis } from '../prompt/dailyAnalysisPrompt.js'; // Import new prompt
 import { insertFoot } from '../foot.js';
 import { insertAd } from '../ad.js';
-import { getDailyReportContent } from '../github.js'; // 导入 getDailyReportContent
+import { getFromR2 } from '../r2storage.js'; // 从 R2 读取日报内容（替代 GitHub）
 
 export async function handleGenAIPodcastScript(request, env) {
     let dateStr;
@@ -31,17 +31,21 @@ export async function handleGenAIPodcastScript(request, env) {
         const readGithub = formData.get('readGithub') === 'true';
 
         if (readGithub) {
-            const filePath = `daily/${dateStr}.md`;
-            console.log(`从 GitHub 读取文件: ${filePath}`);
+            const r2Key = `daily/${dateStr}.md`;
+            console.log(`从 KV 读取文件: ${r2Key}`);
+            if (!env.DATA_KV) {
+                const errorHtml = generateGenAiPageHtml(env, '生成AI播客脚本出错', '<p><strong>KV binding (DATA_KV) 未配置。</strong></p>', dateStr, true, null, null, null, null, null, null, outputOfCall1, null);
+                return new Response(errorHtml, { status: 500, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+            }
             try {
-                outputOfCall1 = await getDailyReportContent(env, filePath);
+                outputOfCall1 = await getFromR2(env.DATA_KV, r2Key);
                 if (!outputOfCall1) {
-                    throw new Error(`从 GitHub 读取文件 ${filePath} 失败或内容为空。`);
+                    throw new Error(`从 KV 读取文件 ${r2Key} 失败或内容为空。`);
                 }
-                console.log(`成功从 GitHub 读取文件，内容长度: ${outputOfCall1.length}`);
+                console.log(`成功从 KV 读取文件，内容长度: ${outputOfCall1.length}`);
             } catch (error) {
-                console.error(`读取 GitHub 文件出错: ${error}`);
-                const errorHtml = generateGenAiPageHtml(env, '生成AI播客脚本出错', `<p><strong>从 GitHub 读取文件失败:</strong> ${escapeHtml(error.message)}</p>${error.stack ? `<pre>${escapeHtml(error.stack)}</pre>` : ''}`, dateStr, true, null, null, null, null, null, null, outputOfCall1, null);
+                console.error(`读取 KV 文件出错: ${error}`);
+                const errorHtml = generateGenAiPageHtml(env, '生成AI播客脚本出错', `<p><strong>从 KV 读取文件失败:</strong> ${escapeHtml(error.message)}</p>${error.stack ? `<pre>${escapeHtml(error.stack)}</pre>` : ''}`, dateStr, true, null, null, null, null, null, null, outputOfCall1, null);
                 return new Response(errorHtml, { status: 500, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
             }
         } else {

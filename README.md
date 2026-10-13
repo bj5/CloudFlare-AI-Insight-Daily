@@ -1,16 +1,45 @@
 # 🚀 AI 资讯日报
 
-> 您的每日 AI 信息整合,分析,日报,播客内容生成平台。
+> 全栈 Cloudflare 生态托管 · 零服务器 · 零外部平台依赖
 
-**AI 资讯日报** 是一个基于 **Cloudflare Workers** 驱动的内容聚合与生成平台。它每日为您精选 AI 领域的最新动态，包括行业新闻、热门开源项目、前沿学术论文、科技大V社交媒体言论，并通过 **Google Gemini** 模型进行智能处理与摘要生成，最终自动发布到 GitHub Pages 生成 AI 日报。
+**AI 资讯日报** 是基于 **Cloudflare Workers** 驱动的内容聚合与 AI 分析平台。每日精选 AI 领域最新动态，包括行业新闻、热门开源项目、前沿学术论文、科技大V社交媒体内容，通过 **Cloudflare Workers AI** 进行智能摘要生成，日报内容存储于 **Cloudflare R2**，元数据存于 **Cloudflare D1**。
 
-我们的目标是成为您在瞬息万变的 AI 浪潮中保持领先的得力助手，让您高效获取最有价值的信息。
+## 架构特点
 
-> [!NOTE]
-> 日报后端项目已全面迁移至该项目: [PrismFlowAgent](https://github.com/justlovemaki/PrismFlowAgent) , 原生支持AI操作，可docker部署
-> 
-> 日报前端项目已发布2.0: [Hextra-AI-Insight-Daily](https://github.com/justlovemaki/Hextra-AI-Insight-Daily) , 基于 Hugo 加 Hextra主题 构建。
-> 
-> 感谢阮一峰老师在[周刊352期](https://www.ruanyifeng.com/blog/2025/06/weekly-issue-352.html)的推荐。
->
-> 全新日报站点：[hex2077.dev/](https://hex2077.dev/)
+```
+Workers (逻辑) → Workers AI (推理) → R2 (存储) → D1 (查询) → KV (缓存)
+                    ↑
+              Cron Triggers (每日自动抓取，替代 Docker Cron)
+```
+
+| 组件 | 用途 |
+|------|------|
+| **Cloudflare Workers** | HTTP 路由 / 业务逻辑 |
+| **Workers AI** | AI 摘要/日报生成（替代 Gemini） |
+| **KV** | 会话存储 / 原始数据缓存 |
+| **D1** | 日报元数据 / RSS 结构化查询 |
+| **R2** | 日报 / 播客 Markdown 文件（替代 GitHub 提交） |
+| **Cron Triggers** | 每日自动数据抓取（替代 cron-docker） |
+
+## 快速开始
+
+详见 [📖 CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md)
+
+```bash
+# 1. 创建资源
+wrangler kv namespace create DATA_KV
+wrangler d1 create ai-daily-db
+wrangler d1 execute ai-daily-db --file=./schema.sql
+wrangler r2 bucket create ai-daily-bucket
+
+# 2. 设置密码
+wrangler secret put LOGIN_PASSWORD
+
+# 3. 填写 wrangler.toml 中的 ID，然后部署
+wrangler deploy
+```
+
+## Workers AI 模型
+
+默认使用 `@cf/meta/llama-3.3-70b-instruct`，无需任何 API Key。  
+可在 `wrangler.toml` 中修改 `DEFAULT_AI_MODEL` 切换模型。
